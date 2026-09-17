@@ -1,5 +1,6 @@
+import random
 from typing import Literal
-from Pydantic import BaseModel, Field
+from pydantic import BaseModel, Field
 
 class Carta(BaseModel):
     nome: str
@@ -17,7 +18,7 @@ class Carta(BaseModel):
             print(f"{self.nome} já atacou nesse turno e está exausta!")
             return
 
-        self.estilo = True
+        self.condicao = True
         print(f"{self.nome} atacou causando {self.ataque} de dano!")
 
     def novo_turno(self) -> None:
@@ -29,7 +30,8 @@ class Carta(BaseModel):
 class Pocao(BaseModel):
     nome: str
     cura: int
-    quantidade: int = Field(default = 3, ge = 0)
+    quantidade:  int = Field(default = 3, ge = 0)
+    custo_ether: int = Field(default = 1, ge = 0)
 
     def usar(self, hp_atual: int, max_hp: int) -> int:
         if self.quantidade <= 0:
@@ -56,10 +58,37 @@ class Pet(BaseModel):
     habilidades: list[str] = Field(default_factory=list)
 
 
+class Deck(BaseModel):
+     cartas: list[Carta] = Field(default_factory = list)
+
+     def embaralhar(self) -> None:
+         random.shuffle(self.cartas)
+
+     def comprar(self) -> Carta | None:
+         if not self.cartas:
+             print("Baralho Vazio")
+             return None
+         return self.cartas.pop(0)
+
+
 class Jogador(BaseModel):
     nickname: str
     hp: int = Field(default = 30, ge = 0, le = 30)
     max_hp: int = 30
     ether_atual: int = Field(default = 1, ge = 0, le= 10)
     max_ether: int = 10
+    deck: Deck = Field(default_factory=Deck)
+    mao: list[Carta | Pocao] = Field(default_factory = list)
+    cemiterio: list[Carta | Pocao] = Field(default_factory = list)
+
+    def comprar_carta(self) -> None:
+        carta = self.deck.comprar()
+        if carta:
+            self.mao.append(carta)
+            print(f"{self.nickname} comprou a carta: {carta.nome}")
+
+    def renovar_ether(self, rodada:int) -> None:
+        self.max_ether = min(10, rodada)
+        self.ether_atual = self.max_ether
+        print(f"{self.nickname} recarregou Ether: {self.ether_atual}/{self.max_ether}")
 

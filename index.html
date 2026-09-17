@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>TCG Arena - Duelo MTG Style</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* Estilização MTG Arena */
+    .mtg-battlefield {
+      background: radial-gradient(circle, #1e293b 0%, #0f172a 70%, #020617 100%);
+      box-shadow: inset 0 0 100px rgba(0, 0, 0, 0.8);
+    }
+    .mtg-card {
+      width: 100px;
+      height: 145px;
+      transition: all 0.2s ease-in-out;
+      background: linear-gradient(180deg, #1e1b4b 0%, #0f172a 100%);
+    }
+    .mtg-card:hover {
+      transform: translateY(-10px) scale(1.08);
+      z-index: 30;
+      box-shadow: 0 0 15px rgba(245, 158, 11, 0.5);
+    }
+    .mtg-card-back {
+      background: linear-gradient(135deg, #311b92 0%, #1a237e 100%);
+      border: 2px solid #3f51b5;
+    }
+    .card-exhausted {
+      transform: rotate(12deg) opacity(0.7);
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-white min-h-screen font-sans select-none overflow-x-hidden">
+
+  <!-- HEADER -->
+  <header class="bg-slate-900 border-b border-slate-800 px-6 py-3 flex justify-between items-center">
+    <div class="flex items-center gap-2">
+      <span class="text-2xl">⚔️</span>
+      <h1 class="text-xl font-black text-amber-400 tracking-wider">TCG ARENA</h1>
+    </div>
+    <div id="turno-box" class="hidden bg-slate-800 border border-slate-700 px-4 py-1 rounded-full text-xs font-bold text-sky-300">
+      Turno: <span id="lbl-turno" class="text-white">1</span> | Vez de: <span id="lbl-vez" class="text-amber-400">Kael</span>
+    </div>
+    <button onclick="iniciarPartida()" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-black px-4 py-2 rounded-lg shadow-lg text-xs uppercase tracking-wider">
+      Novo Duelo
+    </button>
+  </header>
+
+  <!-- ARENA PRINCIPAL (ESTILO MTG) -->
+  <div id="arena-container" class="hidden flex max-w-7xl mx-auto my-4 gap-4 px-4">
+    
+    <!-- MESA DE BATALHA -->
+    <main class="flex-1 mtg-battlefield rounded-3xl border-2 border-slate-800 p-4 flex flex-col justify-between relative min-h-[680px]">
+      
+      <!-- OPONENTE (PLAYER 2) -->
+      <div id="box-p2" class="space-y-2">
+        <div class="flex justify-between items-center border-b border-slate-800/80 pb-2">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full bg-red-900 border-2 border-red-500 flex items-center justify-center font-black shadow-lg" id="p2-avatar">
+              <span id="p2-hp">30</span>
+            </div>
+            <div>
+              <h2 id="p2-nome" class="font-bold text-sm text-slate-300">Oponente</h2>
+              <span class="text-[10px] text-blue-400 font-bold">💎 Ether: <span id="p2-ether">0/0</span></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Mão do Oponente -->
+        <div id="p2-mao" class="flex gap-2 min-h-[50px] items-center justify-center"></div>
+
+        <!-- Mesa do Oponente -->
+        <div class="bg-slate-950/40 p-3 rounded-2xl border border-slate-800/60 min-h-[140px] flex items-center">
+          <div id="p2-campo" class="flex flex-wrap gap-3 items-center justify-center w-full"></div>
+        </div>
+      </div>
+
+      <!-- BOTÃO CENTRAL RESOLVE / PASSAR TURNO -->
+      <div class="flex justify-center items-center my-2">
+        <button onclick="passarTurno()" class="bg-gradient-to-r from-amber-600 to-orange-500 hover:from-amber-500 hover:to-orange-400 text-slate-950 font-black px-8 py-2.5 rounded-full shadow-lg text-sm uppercase tracking-wider border border-amber-300/40 transform hover:scale-105 transition">
+          Passar Turno ➔
+        </button>
+      </div>
+
+      <!-- JOGADORES (PLAYER 1) -->
+      <div id="box-p1" class="space-y-2">
+        <!-- Sua Mesa -->
+        <div class="bg-slate-950/40 p-3 rounded-2xl border border-slate-800/60 min-h-[140px] flex items-center">
+          <div id="p1-campo" class="flex flex-wrap gap-3 items-center justify-center w-full"></div>
+        </div>
+
+        <!-- Sua Mão -->
+        <div id="p1-mao" class="flex flex-wrap gap-3 min-h-[150px] items-center justify-center"></div>
+
+        <div class="flex justify-between items-center border-t border-slate-800/80 pt-2">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full bg-emerald-900 border-2 border-emerald-500 flex items-center justify-center font-black shadow-lg" id="p1-avatar">
+              <span id="p1-hp">30</span>
+            </div>
+            <div>
+              <h2 id="p1-nome" class="font-bold text-sm text-amber-400">Você</h2>
+              <span class="text-[10px] text-blue-400 font-bold">💎 Ether: <span id="p1-ether">0/0</span></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+
+    <!-- INSPETOR LATERAL DE CARTAS (PAINEL DIREITO MTG) -->
+    <aside class="w-72 bg-slate-900 border-2 border-slate-800 rounded-3xl p-4 flex flex-col items-center justify-between shadow-2xl">
+      <div class="w-full text-center border-b border-slate-800 pb-2">
+        <h3 class="text-xs font-bold uppercase tracking-widest text-slate-400">Inspeção de Carta</h3>
+      </div>
+
+      <div id="inspector-card" class="w-56 h-80 bg-slate-950 rounded-2xl border-2 border-amber-500/60 p-3 flex flex-col justify-between shadow-2xl my-auto">
+        <div class="text-center text-slate-500 text-sm my-auto">
+          Passe o mouse sobre uma carta para inspecionar
+        </div>
+      </div>
+
+      <div class="text-[10px] text-slate-500 text-center">
+        Clique na carta da sua mão para jogar no campo
+      </div>
+    </aside>
+
+  </div>
+
+  <script>
+    const API_URL = "http://127.0.0.1:8000";
+
+    async function iniciarPartida() {
+      await fetch(`${API_URL}/partida/iniciar`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nickname_p1: "Kael", nickname_p2: "Varian" })
+      });
+      document.getElementById("arena-container").classList.remove("hidden");
+      document.getElementById("turno-box").classList.remove("hidden");
+      atualizarEstado();
+    }
+
+    async function atualizarEstado() {
+      const res = await fetch(`${API_URL}/partida/estado`);
+      if (!res.ok) return;
+      const data = await res.json();
+
+      document.getElementById("lbl-turno").innerText = data.turno;
+      document.getElementById("lbl-vez").innerText = data.jogador_ativo;
+
+      const nomes = Object.keys(data.jogadores);
+      renderizarJogador('p1', nomes[0], data.jogadores[nomes[0]], data.jogador_ativo);
+      renderizarJogador('p2', nomes[1], data.jogadores[nomes[1]], data.jogador_ativo);
+    }
+
+    // Gera o visual físico da carta no estilo MTGA
+    function criarHTMLCarta(item, index = null, interativa = false) {
+      if (!item || (!item.nome && !item.tipo)) return '';
+
+      const eCarta = item.tipo === "carta" || item.ataque !== undefined;
+      const jsonItem = JSON.stringify(item).replace(/"/g, '&quot;');
+
+      if (eCarta) {
+        const tonta = item.estilo;
+        const exausta = item.condicao;
+        const classeStatus = exausta ? 'card-exhausted' : '';
+
+        return `
+          <div ${interativa ? `onclick="invocarCarta(${index})"` : ''} 
+               onmouseenter="inspecionarCarta('${jsonItem}')"
+               class="mtg-card rounded-xl border-2 border-amber-500/70 p-1.5 flex flex-col justify-between shadow-2xl cursor-pointer relative ${classeStatus}">
+            
+            <div class="flex justify-between items-center bg-slate-900/90 rounded px-1 py-0.5 border border-slate-700/60">
+              <span class="text-[9px] font-bold text-amber-200 truncate max-w-[55px]">${item.nome}</span>
+              <span class="bg-blue-600 text-white text-[9px] font-black px-1 rounded-full">💎${item.custo_ether}</span>
+            </div>
+
+            <div class="my-1 bg-slate-950 rounded border border-slate-800 flex-1 flex items-center justify-center text-xl shadow-inner">
+              ${tonta ? '💤' : '🐉'}
+            </div>
+
+            <div class="flex justify-end items-center">
+              <div class="bg-gradient-to-r from-amber-600 to-red-600 text-white text-[10px] font-black px-1.5 py-0.5 rounded border border-amber-300/40 shadow">
+                ${item.ataque}/${item.defesa}
+              </div>
+            </div>
+          </div>
+        `;
+      } else {
+        return `
+          <div ${interativa ? `onclick="invocarCarta(${index})"` : ''} 
+               onmouseenter="inspecionarCarta('${jsonItem}')"
+               class="mtg-card rounded-xl border-2 border-emerald-500/70 p-1.5 flex flex-col justify-between shadow-2xl cursor-pointer relative">
+            
+            <div class="flex justify-between items-center bg-slate-900/90 rounded px-1 py-0.5 border border-slate-700/60">
+              <span class="text-[9px] font-bold text-emerald-300 truncate max-w-[55px]">${item.nome}</span>
+              <span class="bg-blue-600 text-white text-[9px] font-black px-1 rounded-full">💎${item.custo_ether}</span>
+            </div>
+
+            <div class="my-1 bg-emerald-950/40 rounded border border-emerald-800/40 flex-1 flex items-center justify-center text-xl">
+              🧪
+            </div>
+
+            <div class="text-center bg-emerald-900/80 text-emerald-200 text-[9px] font-bold py-0.5 rounded border border-emerald-500/40">
+              +${item.cura} HP
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    function inspecionarCarta(jsonStr) {
+      const item = JSON.parse(jsonStr);
+      const inspector = document.getElementById("inspector-card");
+      const eCarta = item.tipo === "carta" || item.ataque !== undefined;
+
+      if (eCarta) {
+        inspector.innerHTML = `
+          <div class="flex justify-between items-center border-b border-amber-500/40 pb-1">
+            <span class="font-bold text-sm text-amber-300">${item.nome}</span>
+            <span class="bg-blue-600 text-white text-xs font-black px-2 py-0.5 rounded-full">💎 ${item.custo_ether}</span>
+          </div>
+          <div class="my-2 bg-slate-900 rounded-xl border border-slate-800 flex-1 flex items-center justify-center text-5xl">
+            🐉
+          </div>
+          <div class="bg-slate-900/80 p-2 rounded-lg border border-slate-800 text-[11px] text-slate-300 space-y-1">
+            <p><strong>Tipo:</strong> Criatura</p>
+            <p><strong>Estado:</strong> ${item.estilo ? 'Tonta (Invocação)' : (item.condicao ? 'Exausta' : 'Pronta para atacar')}</p>
+          </div>
+          <div class="flex justify-between items-center pt-2">
+            <span class="text-xs text-slate-400">Poder / Resistência</span>
+            <span class="bg-red-600 text-white text-sm font-black px-2.5 py-1 rounded-lg border border-amber-400">${item.ataque} / ${item.defesa}</span>
+          </div>
+        `;
+      } else {
+        inspector.innerHTML = `
+          <div class="flex justify-between items-center border-b border-emerald-500/40 pb-1">
+            <span class="font-bold text-sm text-emerald-300">${item.nome}</span>
+            <span class="bg-blue-600 text-white text-xs font-black px-2 py-0.5 rounded-full">💎 ${item.custo_ether}</span>
+          </div>
+          <div class="my-2 bg-emerald-950/30 rounded-xl border border-emerald-800/40 flex-1 flex items-center justify-center text-5xl">
+            🧪
+          </div>
+          <div class="bg-slate-900/80 p-2 rounded-lg border border-slate-800 text-[11px] text-slate-300 space-y-1">
+            <p><strong>Tipo:</strong> Poção / Consumível</p>
+            <p>Recupera vida instantaneamente ao ser ativada.</p>
+          </div>
+          <div class="text-center bg-emerald-700 text-white font-black text-sm py-1 rounded-lg">
+            +${item.cura} HP
+          </div>
+        `;
+      }
+    }
+
+    function renderizarJogador(prefix, nome, dados, jogadorAtivo) {
+      document.getElementById(`${prefix}-nome`).innerText = nome;
+      document.getElementById(`${prefix}-hp`).innerText = dados.hp;
+      document.getElementById(`${prefix}-ether`).innerText = `${dados.ether}/${dados.max_ether}`;
+
+      const eAtivo = (nome === jogadorAtivo);
+
+      // Renderiza a Mão
+      const maoEl = document.getElementById(`${prefix}-mao`);
+      if (prefix === 'p2') {
+        maoEl.innerHTML = dados.mao.map(() => `
+          <div class="w-9 h-12 mtg-card-back rounded-md shadow-md flex items-center justify-center text-[10px]">🔮</div>
+        `).join('');
+      } else {
+        maoEl.innerHTML = dados.mao.map((item, idx) => criarHTMLCarta(item, idx, eAtivo)).join('');
+      }
+
+      // Renderiza a Mesa
+      const campoEl = document.getElementById(`${prefix}-campo`);
+      campoEl.innerHTML = dados.campo.map(item => criarHTMLCarta(item)).join('');
+    }
+
+    async function invocarCarta(index) {
+      const res = await fetch(`${API_URL}/partida/invocar`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ indice_na_mao: index })
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        alert(err.detail);
+      }
+      atualizarEstado();
+    }
+
+    async function passarTurno() {
+      await fetch(`${API_URL}/partida/passar-turno`, { method: 'POST' });
+      atualizarEstado();
+    }
+  </script>
+</body>
+</html>
