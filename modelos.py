@@ -1,94 +1,83 @@
+import uuid
 import random
 from typing import Literal
 from pydantic import BaseModel, Field
 
 class Carta(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4())[:8])
+    tipo: Literal["criatura"] = "criatura"
     nome: str
-    custo_ether: int = Field(default = 1, ge = 0)
-    ataque: int      = Field(ge = 0)
-    defesa: int      = Field(ge = 0)
-    condicao: bool   = False #exered
-    estilo:   bool   = True #dizzy
+    custo_ether: int = Field(default=1, ge=0)
+    ataque: int = Field(ge=0)
+    defesa: int = Field(ge=0)
+    defesa_atual: int = Field(default=0)
+    condicao: bool = False  # True = Exausta
+    estilo: bool = True     # True = Tonta 
 
-    def atacar(self) -> None:
+    def model_post_init(self, __context):
+        if self.defesa_atual == 0:
+            self.defesa_atual = self.defesa
+
+    def atacar(self) -> tuple[bool, str]:
         if self.estilo:
-            print(f"{self.nome} tem tontura de invocação e não pode atacar nesse turno")
-            return
+            return False, f"{self.nome} tem tontura de invocação e não pode atacar nesse turno!"
         if self.condicao:
-            print(f"{self.nome} já atacou nesse turno e está exausta!")
-            return
+            return False, f"{self.nome} já atacou nesse turno e está exausta!"
 
         self.condicao = True
-        print(f"{self.nome} atacou causando {self.ataque} de dano!")
+        return True, f"{self.nome} atacou causando {self.ataque} de dano!"
 
     def novo_turno(self) -> None:
-        self.estilo   = False
+        self.estilo = False
         self.condicao = False
-        print(f"{self.nome} está pronta para o combate!")
 
 
 class Pocao(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4())[:8])
+    tipo: Literal["pocao"] = "pocao"
     nome: str
     cura: int
-    quantidade:  int = Field(default = 3, ge = 0)
-    custo_ether: int = Field(default = 1, ge = 0)
+    quantidade: int = Field(default=1, ge=0)
+    custo_ether: int = Field(default=1, ge=0)
 
-    def usar(self, hp_atual: int, max_hp: int) -> int:
+    def usar(self, hp_atual: int, max_hp: int) -> tuple[int, bool, str]:
         if self.quantidade <= 0:
-            print(f"Você não tem mais {self.nome}s no inventário!")
-            return hp_atual
+            return hp_atual, False, f"Você não tem mais {self.nome}s!"
 
         self.quantidade -= 1
         novo_hp = min(hp_atual + self.cura, max_hp)
-        print(f"Usou {self.nome}! HP recuperado. Restam {self.quantidade} unidades.")
-        return novo_hp
-
-
-class Armamento(BaseModel):
-    nome: str
-    dado_bonus:   int = Field(ge = 0)
-    durabilidade: int = Field(default = 100, ge = 0)
-    radidade: Literal["Comum", "Rara", "Lendária"] = "Comum"
-
-
-class Pet(BaseModel):
-    nome: str
-    nivel: int = Field(default = 1, ge = 1)
-    esta_ativo: bool = False
-    habilidades: list[str] = Field(default_factory=list)
+        return novo_hp, True, f"Usou {self.nome}! HP recuperado."
 
 
 class Deck(BaseModel):
-     cartas: list[Carta] = Field(default_factory = list)
+    cartas: list[Carta | Pocao] = Field(default_factory=list)
 
-     def embaralhar(self) -> None:
-         random.shuffle(self.cartas)
+    def embaralhar(self) -> None:
+        random.shuffle(self.cartas)
 
-     def comprar(self) -> Carta | None:
-         if not self.cartas:
-             print("Baralho Vazio")
-             return None
-         return self.cartas.pop(0)
+    def comprar(self) -> Carta | Pocao | None:
+        if not self.cartas:
+            return None
+        return self.cartas.pop(0)
 
 
 class Jogador(BaseModel):
+    sid: str = "" 
     nickname: str
-    hp: int = Field(default = 30, ge = 0, le = 30)
+    hp: int = Field(default=30, ge=0, le=30)
     max_hp: int = 30
-    ether_atual: int = Field(default = 1, ge = 0, le= 10)
-    max_ether: int = 10
+    ether_atual: int = Field(default=1, ge=0, le=10)
+    max_ether: int = 1
     deck: Deck = Field(default_factory=Deck)
-    mao: list[Carta | Pocao] = Field(default_factory = list)
-    cemiterio: list[Carta | Pocao] = Field(default_factory = list)
+    mao: list[Carta | Pocao] = Field(default_factory=list)
+    cemiterio: list[Carta | Pocao] = Field(default_factory=list)
 
-    def comprar_carta(self) -> None:
+    def comprar_carta(self) -> Carta | Pocao | None:
         carta = self.deck.comprar()
         if carta:
             self.mao.append(carta)
-            print(f"{self.nickname} comprou a carta: {carta.nome}")
+        return carta
 
-    def renovar_ether(self, rodada:int) -> None:
+    def renovar_ether(self, rodada: int) -> None:
         self.max_ether = min(10, rodada)
         self.ether_atual = self.max_ether
-        print(f"{self.nickname} recarregou Ether: {self.ether_atual}/{self.max_ether}")
-
